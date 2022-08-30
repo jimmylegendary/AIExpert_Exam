@@ -1,5 +1,5 @@
 from math import ceil
-from random import random
+import random
 import tkinter as tk
 from tkinter import messagebox
 import os
@@ -147,18 +147,9 @@ for i in range(41):
         img_files.append(pa_pair_files) 
 
 def shuffle(img_files, size):
-    res = []
-    # min_idx = 0
-    max_idx = len(img_files) - 1
-    visited = [False for _ in range(max_idx+1)]
-    for _ in range(size):
-        rand_idx = int(random() * max_idx)
-        while visited[rand_idx]:
-            rand_idx = int(random() * max_idx)
-        visited[rand_idx] = True
-        res.append(img_files[rand_idx])
+    random.shuffle(img_files)
     
-    return res
-img_files = shuffle(img_files, 20)
+    return img_files[:size+1]
+img_files = shuffle(img_files, 5)
 ImageViewer(window, img_files)
 window.mainloop()
