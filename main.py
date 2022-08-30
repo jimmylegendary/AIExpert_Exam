@@ -10,9 +10,11 @@ class ImageViewer():
         self.canvas_width = 1200
         self.canvas_height = 300
         self.pcanvas = tk.Canvas(window, width=self.canvas_width, height=self.canvas_height)
+        self.p_on_canvas = self.pcanvas.create_image([0, 0], anchor=tk.NW)
         self.pcanvas.grid(row=0, column=0)
         
         self.acanvas = tk.Canvas(window, width=self.canvas_width, height=self.canvas_height)
+        self.a_on_canvas = self.acanvas.create_image([0, 0], anchor=tk.NW)
         self.acanvas.grid(row=1, column=0)
         self.window = window
 
@@ -35,18 +37,20 @@ class ImageViewer():
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
         r_height = self.canvas_height
         r_width = self.canvas_width
-        image = image.resize((r_height, r_width), Image.ANTIALIAS)
-        photo = ImageTk.PhotoImage(image)
-        self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW, image=photo)
-        # self.pcanvas.pack(side='top', expand=True,fill='both')
+        # image = image.resize((r_height, r_width), Image.ANTIALIAS)
+        # photo = ImageTk.PhotoImage(image)
+        photo = tk.PhotoImage(self.img_files[self.p_idx][self.sub_p_idx][0])
+        # self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW, image=photo)
+        self.pcanvas.itemconfig(self.p_on_canvas, image=photo)
         
     def check_answer(self):       
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][1])
         r_height = self.canvas_height
         r_width = self.canvas_width
-        image = image.resize((r_height, r_width), PIL.Image.ANTIALIAS)
+        # image = image.resize((r_height, r_width), PIL.Image.ANTIALIAS)
         photo = ImageTk.PhotoImage(image)
-        self.a_on_canvas = self.acanvas.create_image(0, 0, anchor=tk.NW, image=photo)
+        # self.a_on_canvas = self.acanvas.create_image(0, 0, anchor=tk.NW, image=photo)
+        self.acanvas.itemconfig(self.a_on_canvas, image=photo)
     
     def next_problem(self):
         sub_problem_size = len(self.img_files[self.p_idx])
@@ -54,6 +58,8 @@ class ImageViewer():
         if self.sub_p_idx == sub_problem_size:
             self.p_idx += 1
             self.sub_p_idx = 0
+        self.show_problem()
+        self.acanvas.delete('all')
 
 
 window = tk.Tk()
