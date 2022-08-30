@@ -150,8 +150,12 @@ def shuffle(img_files, size):
     res = []
     # min_idx = 0
     max_idx = len(img_files) - 1
+    visited = [False for _ in range(max_idx+1)]
     for _ in range(size):
         rand_idx = int(random() * max_idx)
+        while visited[rand_idx]:
+            rand_idx = int(random() * max_idx)
+        visited[rand_idx] = True
         res.append(img_files[rand_idx])
     
     return res
