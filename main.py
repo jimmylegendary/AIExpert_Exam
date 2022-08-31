@@ -6,14 +6,16 @@ import os
 import PIL
 from PIL import Image, ImageTk
 
+wwidth = 800
+wheight = 600
 class ImageViewer():
     
     def __init__(self, window, img_files):
         self.window : tk.Tk = window
-        self.canvas_width = 900
-        self.canvas_height = 500
+        self.canvas_width = wwidth // 2
+        self.canvas_height = wheight // 2
         
-        self.pcanvas = tk.Canvas(self.window, width=self.canvas_width, height=self.canvas_height+100)
+        self.pcanvas = tk.Canvas(self.window, width=self.canvas_width, height=self.canvas_height)
         self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW)
         self.pcanvas.grid(row=0, column=0)
         
@@ -43,15 +45,21 @@ class ImageViewer():
             yscrollcommand=self.y_scrollbar2.set,
             xscrollcommand=self.x_scrollbar2.set)
 
-        self.button = tk.Button(self.window, text="이전문제", command=self.prev_problem)
-        self.button.grid(row=2, column=0)
-        self.button = tk.Button(self.window, text="다음문제", command=self.next_problem)
-        self.button.grid(row=2, column=1)
-        self.button = tk.Button(self.window, text="정답확인", command=self.check_answer)
-        self.button.grid(row=3, column=0)
+        self.restart_button = tk.Button(self.window, text="Restart", command=self.restart)
+        self.restart_button.grid(row=2, column=0)
+        self.problem_size_text = tk.Entry(self.window, width=10)
+        self.problem_size_text.grid(row=3, column=0)
+        self.button1 = tk.Button(self.window, text="이전문제", command=self.prev_problem)
+        self.button1.grid(row=2, column=1)
+        self.button2 = tk.Button(self.window, text="다음문제", command=self.next_problem)
+        self.button2.grid(row=2, column=2)
+        self.button3 = tk.Button(self.window, text="정답확인", command=self.check_answer)
+        self.button3.grid(row=3, column=1)
+        self.button4 = tk.Button(self.window, text="정답숨기기", command=self.hide_answer)
+        self.button4.grid(row=3, column=2)
         
         self.input_text = tk.Text(self.window, height=20, width=100)
-        self.input_text.grid(row=3,column=2)
+        self.input_text.grid(row=3,column=3)
 
         self.img_files = img_files
         self.p_idx = 0
@@ -62,6 +70,22 @@ class ImageViewer():
         
         self.show_problem()
 
+    def shuffle(self, img_files, size):
+        random.shuffle(img_files)
+    
+        return img_files[:size+1]
+    def restart(self):
+        psize = self.problem_size_text.get()
+        if psize == '':
+            psize = 20
+        else:
+            psize = int(psize)
+        self.img_files = self.shuffle(orig_img_files, psize)
+        self.p_idx = 0
+        self.sub_p_idx = 0
+        self.show_problem()
+        self.hide_answer()
+        
     def show_problem(self):
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
         # image = self.img_files[self.p_idx][self.sub_p_idx][0]
@@ -84,8 +108,13 @@ class ImageViewer():
         # rate = max(x_rate,y_rate)
         # self.pimg = self.pimg.subsample(2)
         # self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW, image=photo)
-        # self.pcanvas.config(width=self.pimg.width())
-        # self.acanvas.config(width=self.window.winfo_width() - self.pimg.width())
+        x, y, new_width, new_height = self.window.grid_bbox(column=0,row=0)
+        if new_width != 0 and new_height != 0:
+            if new_width > self.pimg.width():
+                new_width = self.pimg.width()
+            self.pcanvas.config(width=new_width,height=new_height)
+        else:
+            self.pcanvas.config(width=self.pimg.width(),height=self.pimg.height())
         self.pcanvas.itemconfig(self.p_on_canvas, image=self.pimg)
         self.pcanvas.config(scrollregion=(0,0,self.pimg.width(),self.pimg.height()))
         
@@ -93,8 +122,18 @@ class ImageViewer():
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][1])
         self.aimg = ImageTk.PhotoImage(image=image)
         # self.aimg = tk.PhotoImage(file=image)
+        x, y, new_width, new_height = self.window.grid_bbox(column=2,row=0)
+        if new_width != 0 and new_height != 0:
+            if new_width > self.aimg.width():
+                new_width = self.aimg.width()
+            self.acanvas.config(width=new_width,height=new_height)
+        else:
+            self.acanvas.config(width=self.aimg.width(),height=self.aimg.height())
         self.acanvas.config(scrollregion=(0,0,self.aimg.width(),self.aimg.height()))
         self.acanvas.itemconfig(self.a_on_canvas, image=self.aimg, state='normal')
+    
+    def hide_answer(self):
+        self.acanvas.itemconfig('all',state='hidden')
     
     def next_problem(self):
         sub_problem_size = len(self.img_files[self.p_idx])
@@ -121,11 +160,14 @@ class ImageViewer():
 
 window = tk.Tk()
 window.title("AIExpert Exam 2022")
-window.geometry("1920x1080")
+window.geometry(f"{wwidth}x{wheight}")
+window.grid_rowconfigure(0, weight=1)
+window.grid_columnconfigure(0, weight=1)
+window.grid_columnconfigure(2, weight=1)
 
 idx = 1
 root_dir = f'data'
-img_files = []
+orig_img_files = []
 for i in range(41):
     for (root, dirs, files) in os.walk(root_dir+f'/{i}'):
         pa_pair_files = []
@@ -144,12 +186,7 @@ for i in range(41):
                 p_file = f'{root}/{p_file}'
                 ans_file = f'{root}/{ans_file}'
                 pa_pair_files.append((p_file, ans_file))
-        img_files.append(pa_pair_files) 
-
-def shuffle(img_files, size):
-    random.shuffle(img_files)
-    
-    return img_files[:size+1]
-img_files = shuffle(img_files, 5)
-ImageViewer(window, img_files)
+        orig_img_files.append(pa_pair_files) 
+        
+ImageViewer(window, orig_img_files)
 window.mainloop()
