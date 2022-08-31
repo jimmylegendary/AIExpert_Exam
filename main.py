@@ -86,11 +86,19 @@ class ImageViewer():
         self.restart()
 
     def ans_count(self):
-        if self.var.get() == 1:
-            self.ans += 1
-        elif self.var.get() == 0:
-            self.ans -= 1
-        self.l.config(text=f'{self.ans}/{self.psize}')
+        # if self.var.get() == 1:
+        #     self.ans += 1
+        # elif self.var.get() == 0:
+        #     self.ans -= 1
+        if self.sub_p_idx > 0:
+            self.ans_state[self.p_idx] += self.var.get()
+            if self.sub_p_idx == len(self.img_files[self.p_idx]) - 1:
+                if self.ans_state[self.p_idx] == len(self.img_files[self.p_idx]):
+                    self.ans_state[self.p_idx] = 1
+                else:
+                    self.ans_state[self.p_idx] = 0
+        self.ans_state[self.p_idx] = self.var.get()
+        self.l.config(text=f'{sum(self.ans_state)}/{self.psize}')
     def _on_mousewheel_problem(self, event):
         self.pcanvas.yview_scroll(-1*(event.delta//120), "units")
         
