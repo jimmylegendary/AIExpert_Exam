@@ -16,6 +16,15 @@ class ImageViewer():
         self.canvas_height = wheight // 2
         self.img_files = img_files
         
+        self.grid_pos = {
+            'restart':(2,4),
+            'psize':(3,4),
+            'prev':(4,4),
+            'next':(5,4),
+            'check_answer':(6,4),
+            'hide_answer':(7,4)
+        }
+        
         self.pcanvas = tk.Canvas(self.window, width=self.canvas_width, height=self.canvas_height)
         self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW)
         self.pcanvas.grid(row=0, column=0)
@@ -47,28 +56,28 @@ class ImageViewer():
             xscrollcommand=self.x_scrollbar2.set)
 
         self.restart_button = tk.Button(self.window, text="Restart", command=self.restart)
-        self.restart_button.grid(row=2, column=0)
+        self.restart_button.grid(row=self.grid_pos['restart'][0], column=self.grid_pos['restart'][1])
         self.problem_size_text = tk.Entry(self.window, width=10, text='41')
-        self.problem_size_text.grid(row=3, column=0)
+        self.problem_size_text.grid(row=self.grid_pos['psize'][0], column=self.grid_pos['psize'][1])
         self.button1 = tk.Button(self.window, text="이전문제", command=self.prev_problem)
-        self.button1.grid(row=2, column=1)
+        self.button1.grid(row=self.grid_pos['prev'][0], column=self.grid_pos['prev'][1])
         self.button2 = tk.Button(self.window, text="다음문제", command=self.next_problem)
-        self.button2.grid(row=2, column=2)
+        self.button2.grid(row=self.grid_pos['next'][0], column=self.grid_pos['next'][1])
         self.button3 = tk.Button(self.window, text="정답확인", command=self.check_answer)
-        self.button3.grid(row=3, column=1)
+        self.button3.grid(row=self.grid_pos['check_answer'][0], column=self.grid_pos['check_answer'][1])
         self.button4 = tk.Button(self.window, text="정답숨기기", command=self.hide_answer)
-        self.button4.grid(row=3, column=2)
+        self.button4.grid(row=self.grid_pos['hide_answer'][0], column=self.grid_pos['hide_answer'][1])
         
         self.input_text = tk.Text(self.window, height=20, width=100)
-        self.input_text.grid(row=3,column=3)
+        self.input_text.grid(row=3,column=2)
         
         self.var = tk.IntVar()
         self.cbutton = tk.Checkbutton(window, text='answer',variable=self.var, onvalue=1, offvalue=0, command=self.ans_count)
         self.cbutton.grid(row=2, column=3)
-        self.ans_state = [0 for _ in range(len(self.img_files))]
+        self.ans_state = []
         
         self.l = tk.Label(window, bg='white', width=20, text='empty')
-        self.l.grid(row=3,column=4)
+        self.l.grid(row=3,column=0)
 
         self.p_idx = 0
         self.sub_p_idx = 0
@@ -85,15 +94,13 @@ class ImageViewer():
         self.restart()
 
     def ans_count(self):
-        if self.sub_p_idx > 0:
-            self.ans_state[self.p_idx] += self.var.get()
-            if self.sub_p_idx == len(self.img_files[self.p_idx]) - 1:
-                if self.ans_state[self.p_idx] == len(self.img_files[self.p_idx]):
-                    self.ans_state[self.p_idx] = 1
-                else:
-                    self.ans_state[self.p_idx] = 0
-        self.ans_state[self.p_idx] = self.var.get()
-        self.l.config(text=f'{sum(self.ans_state)}/{self.psize}')
+        self.ans_state[self.p_idx][self.sub_p_idx] = self.var.get()
+        ans_count = 0
+        for state in self.ans_state:
+            if sum(state) == len(state):
+                ans_count += 1
+        self.l.config(text=f'{ans_count}/{self.psize}')
+        
     def _on_mousewheel_problem(self, event):
         self.pcanvas.yview_scroll(-1*(event.delta//120), "units")
         
@@ -115,8 +122,13 @@ class ImageViewer():
         self.sub_p_idx = 0
         self.show_problem()
         self.hide_answer()
-        self.ans_state = [0 for _ in range(len(self.img_files))]
-        self.l.config(text=f'{sum(self.ans_state)}/{self.psize}')
+        self.ans_state = []
+        for pidx, img_file in enumerate(self.img_files):
+            state = []
+            for sub_pidx, sub_img_file in enumerate(img_file):
+                state.append(0)
+            self.ans_state.append(state)
+        self.l.config(text=f'0/{self.psize}')
         
     def show_problem(self):
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
@@ -149,8 +161,13 @@ class ImageViewer():
             self.pcanvas.config(width=self.pimg.width(),height=self.pimg.height())
         self.pcanvas.itemconfig(self.p_on_canvas, image=self.pimg)
         self.pcanvas.config(scrollregion=(0,0,self.pimg.width(),self.pimg.height()))
-        self.cbutton.deselect()
-        self.var.set(0)
+        if len(self.ans_state) > 0:
+            if self.ans_state[self.p_idx][self.sub_p_idx] == 0:
+                self.cbutton.deselect()
+                self.var.set(0)
+            else:
+                self.cbutton.select()
+                self.var.set(1)
         
     def check_answer(self):       
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][1])
