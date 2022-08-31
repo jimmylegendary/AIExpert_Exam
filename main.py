@@ -14,6 +14,7 @@ class ImageViewer():
         self.window : tk.Tk = window
         self.canvas_width = wwidth // 2
         self.canvas_height = wheight // 2
+        self.img_files = img_files
         
         self.pcanvas = tk.Canvas(self.window, width=self.canvas_width, height=self.canvas_height)
         self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW)
@@ -64,13 +65,11 @@ class ImageViewer():
         self.var = tk.IntVar()
         self.cbutton = tk.Checkbutton(window, text='answer',variable=self.var, onvalue=1, offvalue=0, command=self.ans_count)
         self.cbutton.grid(row=2, column=3)
-        self.ans = 0
-        self.ans_state = []
+        self.ans_state = [0 for _ in range(len(self.img_files))]
         
         self.l = tk.Label(window, bg='white', width=20, text='empty')
         self.l.grid(row=3,column=4)
 
-        self.img_files = img_files
         self.p_idx = 0
         self.sub_p_idx = 0
         self.psize = 0
@@ -86,10 +85,6 @@ class ImageViewer():
         self.restart()
 
     def ans_count(self):
-        # if self.var.get() == 1:
-        #     self.ans += 1
-        # elif self.var.get() == 0:
-        #     self.ans -= 1
         if self.sub_p_idx > 0:
             self.ans_state[self.p_idx] += self.var.get()
             if self.sub_p_idx == len(self.img_files[self.p_idx]) - 1:
@@ -120,8 +115,8 @@ class ImageViewer():
         self.sub_p_idx = 0
         self.show_problem()
         self.hide_answer()
-        self.ans = 0
-        self.l.config(text=f'{self.ans}/{self.psize}')
+        self.ans_state = [0 for _ in range(len(self.img_files))]
+        self.l.config(text=f'{sum(self.ans_state)}/{self.psize}')
         
     def show_problem(self):
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
