@@ -47,7 +47,7 @@ class ImageViewer():
 
         self.restart_button = tk.Button(self.window, text="Restart", command=self.restart)
         self.restart_button.grid(row=2, column=0)
-        self.problem_size_text = tk.Entry(self.window, width=10)
+        self.problem_size_text = tk.Entry(self.window, width=10, text='41')
         self.problem_size_text.grid(row=3, column=0)
         self.button1 = tk.Button(self.window, text="이전문제", command=self.prev_problem)
         self.button1.grid(row=2, column=1)
@@ -60,16 +60,43 @@ class ImageViewer():
         
         self.input_text = tk.Text(self.window, height=20, width=100)
         self.input_text.grid(row=3,column=3)
+        
+        self.var = tk.IntVar()
+        self.cbutton = tk.Checkbutton(window, text='answer',variable=self.var, onvalue=1, offvalue=0, command=self.ans_count)
+        self.cbutton.grid(row=2, column=3)
+        self.ans = 0
+        self.ans_state = []
+        
+        self.l = tk.Label(window, bg='white', width=20, text='empty')
+        self.l.grid(row=3,column=4)
 
         self.img_files = img_files
         self.p_idx = 0
         self.sub_p_idx = 0
+        self.psize = 0
         
         self.pimg= None
         self.aimg = None
         
-        self.show_problem()
+        # self.shuffle(orig_img_files,41)
+        # self.show_problem()
+        self.pcanvas.bind_all("<MouseWheel>", self._on_mousewheel_problem)
+        # self.acanvas.bind_all("<MouseWheel>", self._on_mousewheel_answer)
+        
+        self.restart()
 
+    def ans_count(self):
+        if self.var.get() == 1:
+            self.ans += 1
+        elif self.var.get() == 0:
+            self.ans -= 1
+        self.l.config(text=f'{self.ans}/{self.psize}')
+    def _on_mousewheel_problem(self, event):
+        self.pcanvas.yview_scroll(-1*(event.delta//120), "units")
+        
+    def _on_mousewheel_answer(self, event):
+        self.acanvas.yview_scroll(-1*(event.delta//120), "units")
+        
     def shuffle(self, img_files, size):
         random.shuffle(img_files)
     
@@ -77,14 +104,16 @@ class ImageViewer():
     def restart(self):
         psize = self.problem_size_text.get()
         if psize == '':
-            psize = 20
+            self.psize = 41
         else:
-            psize = int(psize)
-        self.img_files = self.shuffle(orig_img_files, psize)
+            self.psize = int(psize)
+        self.img_files = self.shuffle(orig_img_files, self.psize)
         self.p_idx = 0
         self.sub_p_idx = 0
         self.show_problem()
         self.hide_answer()
+        self.ans = 0
+        self.l.config(text=f'{self.ans}/{self.psize}')
         
     def show_problem(self):
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
@@ -117,6 +146,8 @@ class ImageViewer():
             self.pcanvas.config(width=self.pimg.width(),height=self.pimg.height())
         self.pcanvas.itemconfig(self.p_on_canvas, image=self.pimg)
         self.pcanvas.config(scrollregion=(0,0,self.pimg.width(),self.pimg.height()))
+        self.cbutton.deselect()
+        self.var.set(0)
         
     def check_answer(self):       
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][1])
