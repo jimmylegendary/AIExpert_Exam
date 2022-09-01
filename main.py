@@ -57,7 +57,8 @@ class ImageViewer():
 
         self.restart_button = tk.Button(self.window, text="Restart", command=self.restart)
         self.restart_button.grid(row=self.grid_pos['restart'][0], column=self.grid_pos['restart'][1])
-        self.problem_size_text = tk.Entry(self.window, width=10, text='41')
+        self.problem_size_text = tk.Entry(self.window, width=10)
+        self.problem_size_text.insert(0,f'{len(self.img_files)}')
         self.problem_size_text.grid(row=self.grid_pos['psize'][0], column=self.grid_pos['psize'][1])
         self.button1 = tk.Button(self.window, text="이전문제", command=self.prev_problem)
         self.button1.grid(row=self.grid_pos['prev'][0], column=self.grid_pos['prev'][1])
@@ -73,11 +74,16 @@ class ImageViewer():
         
         self.var = tk.IntVar()
         self.cbutton = tk.Checkbutton(window, text='answer',variable=self.var, onvalue=1, offvalue=0, command=self.ans_count)
-        self.cbutton.grid(row=2, column=3)
+        self.cbutton.grid(row=self.grid_pos['next'][0], column=self.grid_pos['next'][1] - 1)
         self.ans_state = []
         
         self.l = tk.Label(window, bg='white', width=20, text='empty')
         self.l.grid(row=3,column=0)
+        self.pnum = tk.Label(window, bg='white', width=20, text='empty')
+        self.pnum.grid(row=4,column=0)
+        self.pmode = tk.Entry(window, bg='white', width=20)
+        self.pmode.insert(0,'all')
+        self.pmode.grid(row=5,column=0)
 
         self.p_idx = 0
         self.sub_p_idx = 0
@@ -94,11 +100,12 @@ class ImageViewer():
         self.restart()
 
     def ans_count(self):
-        self.ans_state[self.p_idx][self.sub_p_idx] = self.var.get()
         ans_count = 0
-        for state in self.ans_state:
-            if sum(state) == len(state):
-                ans_count += 1
+        if len(self.ans_state) != 0:
+            self.ans_state[self.p_idx][self.sub_p_idx] = self.var.get()
+            for state in self.ans_state:
+                if sum(state) == len(state):
+                    ans_count += 1
         self.l.config(text=f'{ans_count}/{self.psize}')
         
     def _on_mousewheel_problem(self, event):
@@ -107,51 +114,42 @@ class ImageViewer():
     def _on_mousewheel_answer(self, event):
         self.acanvas.yview_scroll(-1*(event.delta//120), "units")
         
-    def shuffle(self, img_files, size):
+    def shuffle(self, img_files, size, pmode):
+        if pmode != 'all':
+            img_files = []
+            if pmode == 'ans':
+                for idx, state in enumerate(self.ans_state):
+                    if state[0] == 1:
+                        img_files.append(self.img_files[idx])
+            elif pmode == 'not':
+                for idx, state in enumerate(self.ans_state):
+                    if state[0] == 0:
+                        img_files.append(self.img_files[idx])
+            size = len(img_files)
+            
         random.shuffle(img_files)
     
         return img_files[:size+1]
     def restart(self):
         psize = self.problem_size_text.get()
-        if psize == '':
-            self.psize = 41
-        else:
-            self.psize = int(psize)
-        self.img_files = self.shuffle(orig_img_files, self.psize)
+        self.psize = int(psize)
+        pmode = self.pmode.get()
+        self.img_files = self.shuffle(orig_img_files[:], self.psize, pmode)
+        self.psize = len(self.img_files)
         self.p_idx = 0
         self.sub_p_idx = 0
-        self.show_problem()
-        self.hide_answer()
         self.ans_state = []
         for pidx, img_file in enumerate(self.img_files):
             state = []
             for sub_pidx, sub_img_file in enumerate(img_file):
                 state.append(0)
             self.ans_state.append(state)
-        self.l.config(text=f'0/{self.psize}')
+        self.show_problem()
+        self.hide_answer()
         
     def show_problem(self):
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][0])
-        # image = self.img_files[self.p_idx][self.sub_p_idx][0]
-        # img_width = image.width
-        # img_height = image.height
-        # r_height = self.canvas_height
-        # r_width = self.canvas_width
-        # print('img',img_width,img_height)
-        # print('before', r_width, r_height)
-        # # if img_width > r_width:
-        # #     delta = img_width - r_width
-        # #     r_height -= int(delta * (img_height / img_width))
-        # #     print('after',r_width, r_height)
-        # image = image.resize((r_height, r_width), Image.ANTIALIAS)
         self.pimg = ImageTk.PhotoImage(image=image)
-        # self.pimg = tk.PhotoImage(file=image)
-        # x_rate = ceil(self.pimg.width() /self.canvas_width)
-        # y_rate = ceil(self.pimg.height() /self.canvas_height)
-        # print(x_rate,y_rate)
-        # rate = max(x_rate,y_rate)
-        # self.pimg = self.pimg.subsample(2)
-        # self.p_on_canvas = self.pcanvas.create_image(0, 0, anchor=tk.NW, image=photo)
         x, y, new_width, new_height = self.window.grid_bbox(column=0,row=0)
         if new_width != 0 and new_height != 0:
             if new_width > self.pimg.width():
@@ -168,6 +166,8 @@ class ImageViewer():
             else:
                 self.cbutton.select()
                 self.var.set(1)
+        self.ans_count()
+        self.pnum.config(text=f'Problem num : {self.p_idx+1}_{self.sub_p_idx+1}')
         
     def check_answer(self):       
         image = Image.open(self.img_files[self.p_idx][self.sub_p_idx][1])
@@ -230,10 +230,11 @@ for i in range(41):
                 else:
                     p_num =''
                 p_file = file_name
-                if p_num == '':
-                    ans_file = f'a{i}.png'
-                else:
-                    ans_file = f'a{i}_{p_num}.png'
+                ans_file = 'a' + p_file[1:]
+                # if p_num == '':
+                #     ans_file = f'a{i}.png'
+                # else:
+                #     ans_file = f'a{i}_{p_num}.png'
                 p_file = f'{root}/{p_file}'
                 ans_file = f'{root}/{ans_file}'
                 pa_pair_files.append((p_file, ans_file))
