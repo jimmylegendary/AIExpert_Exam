@@ -84,6 +84,10 @@ class ImageViewer():
         self.pmode = tk.Entry(window, bg='white', width=20)
         self.pmode.insert(0,'all')
         self.pmode.grid(row=5,column=0)
+        
+        self.var1 = tk.IntVar()
+        self.rp = tk.Checkbutton(window, text='real_problem',variable=self.var1, onvalue=1, offvalue=0, command=self.check_real_problem)
+        self.rp.grid(row=2, column=1)
 
         self.p_idx = 0
         self.sub_p_idx = 0
@@ -92,12 +96,19 @@ class ImageViewer():
         self.pimg= None
         self.aimg = None
         
+        self.real_problme_idx = []
+        
         # self.shuffle(orig_img_files,41)
         # self.show_problem()
         self.pcanvas.bind_all("<MouseWheel>", self._on_mousewheel_problem)
         # self.acanvas.bind_all("<MouseWheel>", self._on_mousewheel_answer)
         
         self.restart()
+        
+    def check_real_problem(self):
+        if self.var1.get() == 1:
+            self.real_problme_idx.append(self.p_idx)
+            
 
     def ans_count(self):
         ans_count = 0
@@ -166,6 +177,13 @@ class ImageViewer():
             else:
                 self.cbutton.select()
                 self.var.set(1)
+        if len(self.real_problme_idx) > 0:
+            if self.p_idx not in self.real_problme_idx:
+                self.rp.deselect()
+                self.var1.set(0)
+            else:
+                self.rp.select()
+                self.var1.set(1)
         self.ans_count()
         self.pnum.config(text=f'Problem num : {self.p_idx+1}_{self.sub_p_idx+1}')
         
@@ -195,6 +213,7 @@ class ImageViewer():
         if self.p_idx == len(self.img_files):
             self.p_idx = len(self.img_files) - 1
             messagebox.showinfo('info','마지막 문제 입니다.')
+            print(self.real_problme_idx)
         self.show_problem()
         self.acanvas.itemconfig('all',state='hidden')
     
@@ -219,8 +238,9 @@ window.grid_columnconfigure(2, weight=1)
 idx = 1
 root_dir = f'data'
 orig_img_files = []
-for i in range(41):
+for i in range(42):
     for (root, dirs, files) in os.walk(root_dir+f'/{i}'):
+        if len(files) == 0: continue
         pa_pair_files = []
         for file_name in files:
             if file_name.startswith('p'):
